@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/lume_db
+    username: postgres
+    password: postgres
+
+jwt:
+  secret: super_secret_key_that_is_at_least_32_bytes_long
+
+cors:
+  allowed-origins: "http://localhost:3000,http://localhost:8080"

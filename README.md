@@ -2,6 +2,7 @@
 
 > **Inteligência territorial, reputação de estabelecimentos e segurança comunitária com privacidade *by-design*.**
 
+[![CI](https://img.shields.io/github/actions/workflow/status/luisfmaiadc/sboot-lume-monolith-api/ci.yml?branch=develop&style=for-the-badge&logo=githubactions&label=CI)](https://github.com/luisfmaiadc/sboot-lume-monolith-api/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/Status-MVP_Didático_Ativo-yellow?style=for-the-badge)
 ![Java](https://img.shields.io/badge/Java-25-orange?style=for-the-badge&logo=openjdk)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.1.2-brightgreen?style=for-the-badge&logo=springboot)
@@ -304,6 +305,7 @@ mvn test
   - **Testes Unitários:** domínio rico, serviços, mappers MapStruct, criptografia (`CpfCryptoService`), geração/validação JWT (`JwtService`), cálculo de reputação/risco e validadores de CPF/CNPJ/Geo.
   - **Governança Modular (`ModulithStructureTest`):** valida o encapsulamento dos módulos Spring Modulith e gera diagramas arquiteturais em `target/spring-modulith-docs`.
   - **Integração Web & Segurança (`SecurityFilterChainWebMvcTest`):** 14 cenários `@WebMvcTest` cobrindo todos os 6 controllers contra a cadeia real de filtros (`SecurityConfig`, `JwtDecoder`, `RoleHierarchy`, `@PreAuthorize`, CORS, `X-Request-Id` e `GlobalExceptionHandler`).
+- **Integração Contínua (GitHub Actions):** o pipeline [ci.yml](.github/workflows/ci.yml) automatiza compilação OpenAPI, suíte completa (`mvn -B test`), auditoria SCA (**Trivy**), empacotamento JAR e validação de build do `Dockerfile` a cada *push* ou *pull request* em `develop` e `main`.
 
 > [!NOTE]
 > Testes de integração ponta a ponta contra instância real de PostgreSQL + PostGIS + Flyway (via Testcontainers) estão mapeados como evolução natural para a etapa pós-MVP.

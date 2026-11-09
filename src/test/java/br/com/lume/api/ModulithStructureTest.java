@@ -1,4 +1,4 @@
-package br.com.lume.sboot_lume_monolith_api;
+package br.com.lume.api;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;

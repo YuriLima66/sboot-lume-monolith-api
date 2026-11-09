@@ -5,7 +5,7 @@ info:
     API RESTful do componente Monólito Modular Lume.
     Projetada sob os princípios de Clean Code, Domain-Driven Design (DDD),
     LGPD com anonimização estrita do relator, geolocalização nativa PostGIS e
-    padronização canônica de respostas (RFC 7807 / StandardError).
+    padronização canônica de respostas (StandardError).
   version: 1.0.0
 servers:
   - url: http://localhost:8080
@@ -171,6 +171,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   # ===========================================================================
   # 3. CATÁLOGOS DE DOMÍNIO
@@ -276,6 +278,8 @@ paths:
                   $ref: '#/components/schemas/EstabelecimentoAutocompleteResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   /v1/estabelecimentos:
     get:
@@ -330,7 +334,7 @@ paths:
           schema:
             type: integer
             minimum: 100
-            maximum: 10000
+            maximum: 5000
             default: 1000
         - name: page
           in: query
@@ -358,6 +362,8 @@ paths:
                 $ref: '#/components/schemas/EstabelecimentoPageResult'
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
     post:
       tags:
@@ -392,6 +398,8 @@ paths:
           $ref: '#/components/responses/UnauthorizedError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   /v1/estabelecimentos/meu:
     get:
@@ -486,6 +494,8 @@ paths:
           $ref: '#/components/responses/NotFoundError'
         '409':
           $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   /v1/estabelecimentos/{id}/ocorrencias:
     get:
@@ -542,6 +552,8 @@ paths:
                 $ref: '#/components/schemas/OcorrenciaResumoPageResult'
         '404':
           $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   # ===========================================================================
   # 5. SEGURANÇA TERRITORIAL & VIAS PÚBLICAS
@@ -578,12 +590,12 @@ paths:
         - name: raioMetros
           in: query
           required: false
-          description: Raio espacial em metros (padrão 500m, máximo 2000m)
+          description: Raio espacial em metros (padrão 500m, entre 300m e 500m)
           schema:
             type: integer
             default: 500
-            minimum: 50
-            maximum: 2000
+            minimum: 300
+            maximum: 500
       responses:
         '200':
           description: Diagnóstico de risco calculado com sucesso.
@@ -593,6 +605,8 @@ paths:
                 $ref: '#/components/schemas/DiagnosticoSegurancaResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   /v1/seguranca/ocorrencias-mapa:
     get:
@@ -600,8 +614,10 @@ paths:
         - Seguranca
       summary: Pontos geoespaciais de ocorrências para renderização no mapa
       description: >-
-        Retorna a lista de pontos geográficos no raio delimitado para renderização
-        otimizada de pins e agrupamentos (clusters) no OpenStreetMap / flutter_map.
+        Retorna a lista pública de pontos geográficos no raio delimitado para renderização
+        otimizada de pins e agrupamentos (clusters) no OpenStreetMap / flutter_map (RN01).
+        Para preservar a privacidade (RN04), o id da ocorrência é omitido e, em vias públicas,
+        as coordenadas são arredondadas em 3 casas decimais (HALF_UP, ~110m) e a data da ocorrência é atenuada para o dia 1 do mês.
       operationId: listarOcorrenciasParaMapa
       parameters:
         - name: latitude
@@ -626,17 +642,17 @@ paths:
           schema:
             type: integer
             default: 500
-            minimum: 50
-            maximum: 2000
+            minimum: 100
+            maximum: 1000
         - name: dias
           in: query
           required: false
-          description: Janela retroativa em dias (ex 30, 90, 365)
+          description: Janela retroativa em dias (máximo 365)
           schema:
             type: integer
             default: 90
             minimum: 1
-            maximum: 730
+            maximum: 365
         - name: tipoViolenciaId
           in: query
           required: false
@@ -647,6 +663,12 @@ paths:
           required: false
           schema:
             type: integer
+        - name: faixaHorario
+          in: query
+          required: false
+          description: Turno da ocorrência para filtragem
+          schema:
+            $ref: '#/components/schemas/FaixaHorario'
       responses:
         '200':
           description: Pontos de ocorrências retornados com sucesso.
@@ -658,6 +680,8 @@ paths:
                   $ref: '#/components/schemas/PontoMapaOcorrenciaResponse'
         '400':
           $ref: '#/components/responses/BadRequestError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   # ===========================================================================
   # 6. OCORRÊNCIAS & VALIDAÇÕES
@@ -736,6 +760,8 @@ paths:
                 $ref: '#/components/schemas/MinhaOcorrenciaPageResult'
         '401':
           $ref: '#/components/responses/UnauthorizedError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
   /v1/ocorrencias/{id}:
     get:
@@ -743,8 +769,10 @@ paths:
         - Ocorrencias
       summary: Consultar detalhes de uma ocorrência
       description: >-
-        Exibe os dados detalhados da ocorrência e o contador de validações comunitárias.
-        O autor original nunca é exposto nesta resposta (RN04).
+        Exibe publicamente (RN01) os dados detalhados da ocorrência e o contador de validações comunitárias.
+        O autor original nunca é exposto nesta resposta (RN04). Para ocorrências em via pública,
+        endereço específico (logradouro, número e bairro) é omitido, as coordenadas são arredondadas em 3 casas decimais (HALF_UP)
+        e as datas (dataOcorrencia e dataRegistro) são atenuadas para o dia 1 do mês.
       operationId: obterOcorrenciaPorId
       parameters:
         - name: id
@@ -802,6 +830,48 @@ paths:
               schema:
                 $ref: '#/components/schemas/StandardError'
 
+    patch:
+      tags:
+        - Ocorrencias
+      summary: Atualizar status de uma ocorrência (moderação e administração)
+      description: >-
+        Permite a um moderador ou administrador alterar o status da ocorrência.
+        Exige perfil `ROLE_MODERADOR` ou `ROLE_ADMIN`.
+      operationId: atualizarStatusOcorrencia
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da ocorrência (UUID)
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AtualizacaoStatusOcorrenciaRequest'
+      responses:
+        '200':
+          description: Status da ocorrência atualizado com sucesso.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OcorrenciaDetalheResponse'
+        '400':
+          $ref: '#/components/responses/BadRequestError'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
+
   /v1/ocorrencias/{id}/validacoes:
     post:
       tags:
@@ -847,6 +917,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/StandardError'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntityError'
 
     delete:
       tags:
@@ -884,7 +956,7 @@ components:
 
   responses:
     BadRequestError:
-      description: Requisição inválida ou parâmetros ausentes (RFC 7807).
+      description: Requisição inválida ou parâmetros ausentes.
       content:
         application/json:
           schema:
@@ -927,11 +999,11 @@ components:
 
   schemas:
     # -------------------------------------------------------------------------
-    # Schemas de Erro Padronizado (RFC 7807 / StandardError)
+    # Schemas de Erro Padronizado (StandardError)
     # -------------------------------------------------------------------------
     StandardError:
       type: object
-      description: Estrutura canônica de erro da API Lume (RFC 7807).
+      description: Estrutura canônica de erro da API Lume.
       required:
         - timestamp
         - status
@@ -987,7 +1059,6 @@ components:
         - NAO_BINARIO
         - OUTRO
         - PREFIRO_NAO_INFORMAR
-      default: PREFIRO_NAO_INFORMAR
 
     RacaEtnia:
       type: string
@@ -998,7 +1069,6 @@ components:
         - INDIGENA
         - AMARELA
         - PREFIRO_NAO_INFORMAR
-      default: PREFIRO_NAO_INFORMAR
 
     OrientacaoSexual:
       type: string
@@ -1007,10 +1077,9 @@ components:
         - HOMOSSEXUAL
         - BISSEXUAL
         - PANSEXUAL
-        - ASSEXXUAL
+        - ASSEXUAL
         - OUTRO
         - PREFIRO_NAO_INFORMAR
-      default: PREFIRO_NAO_INFORMAR
 
     FaixaHorario:
       type: string
@@ -1353,24 +1422,28 @@ components:
           example: 1
         cnpj:
           type: string
-          pattern: '^[0-9]{14}$'
+          pattern: '^[0-9A-Za-z]{12}[0-9]{2}$'
           example: '12345678000199'
         logradouro:
           type: string
           minLength: 2
           maxLength: 150
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
           example: 'Rua das Flores'
         numero:
           type: string
           maxLength: 20
+          pattern: '^[A-Za-z0-9 .,''\-ºª]+$'
           example: '450'
         bairro:
           type: string
           maxLength: 100
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
           example: 'Centro'
         cidade:
           type: string
           maxLength: 100
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
           example: 'São Paulo'
         estado:
           type: string
@@ -1400,19 +1473,23 @@ components:
           type: integer
         cnpj:
           type: string
-          pattern: '^[0-9]{14}$'
+          pattern: '^[0-9A-Za-z]{12}[0-9]{2}$'
         logradouro:
           type: string
           maxLength: 150
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
         numero:
           type: string
           maxLength: 20
+          pattern: '^[A-Za-z0-9 .,''\-ºª]+$'
         bairro:
           type: string
           maxLength: 100
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
         cidade:
           type: string
           maxLength: 100
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
         estado:
           type: string
           pattern: '^[A-Z]{2}$'
@@ -1486,6 +1563,10 @@ components:
           example: 3
         distribuicaoTurno:
           $ref: '#/components/schemas/DistribuicaoTurnoResponse'
+        distribuicaoTipoViolencia:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContagemItemResponse'
 
     EstabelecimentoResumoResponse:
       type: object
@@ -1555,19 +1636,22 @@ components:
         scoreRisco:
           type: number
           format: double
-          description: Valor de 0.00 a 10.00 indicando a densidade de periculosidade
-          example: 2.45
+          description: Valor de 0.00 a 10.00 discretizado em degraus de 0.50 indicando a densidade de periculosidade
+          example: 2.50
         totalOcorrencias:
           type: integer
           example: 12
         distribuicaoTurno:
           $ref: '#/components/schemas/DistribuicaoTurnoResponse'
+          description: Distribuição por faixas horárias aplicando limiar de k-anonymity (k >= 3).
         distribuicaoViolencia:
           type: array
+          description: Distribuição por tipo de violência aplicando limiar de k-anonymity (k >= 3).
           items:
             $ref: '#/components/schemas/ContagemItemResponse'
         distribuicaoMarcadores:
           type: array
+          description: Distribuição por marcador de vulnerabilidade aplicando limiar de k-anonymity (k >= 3).
           items:
             $ref: '#/components/schemas/ContagemItemResponse'
 
@@ -1616,7 +1700,6 @@ components:
     PontoMapaOcorrenciaResponse:
       type: object
       required:
-        - id
         - latitude
         - longitude
         - tipoViolenciaCodigo
@@ -1626,17 +1709,14 @@ components:
         - dataOcorrencia
         - totalValidacoes
       properties:
-        id:
-          type: string
-          format: uuid
         latitude:
           type: number
           format: double
-          example: -23.55052
+          example: -23.551
         longitude:
           type: number
           format: double
-          example: -46.633308
+          example: -46.633
         tipoViolenciaCodigo:
           type: string
           example: 'ASSEDIO_VERBAL'
@@ -1651,7 +1731,7 @@ components:
         dataOcorrencia:
           type: string
           format: date
-          example: '2026-10-15'
+          example: '2026-10-01'
         totalValidacoes:
           type: integer
           example: 3
@@ -1662,58 +1742,57 @@ components:
     RegistroOcorrenciaRequest:
       type: object
       required:
-        - latitude
-        - longitude
-        - logradouro
-        - bairro
-        - cidade
-        - estado
         - dataOcorrencia
         - faixaHorario
         - tipoViolenciaId
-        - tipoAmbiente
       properties:
         estabelecimentoId:
           type: string
           format: uuid
-          description: Opcional. ID do estabelecimento caso o fato tenha ocorrido dentro ou na entrada do comércio.
+          description: Opcional. ID do estabelecimento caso o fato tenha ocorrido dentro ou na entrada do comércio. Quando informado, coordenadas, endereço e tipo de ambiente (ESTABELECIMENTO) são herdados automaticamente do estabelecimento.
         latitude:
           type: number
           format: double
           minimum: -90
           maximum: 90
           example: -23.55052
+          description: Coordenada de latitude. Obrigatório quando estabelecimentoId não for informado.
         longitude:
           type: number
           format: double
           minimum: -180
           maximum: 180
           example: -46.633308
+          description: Coordenada de longitude. Obrigatório quando estabelecimentoId não for informado.
         logradouro:
           type: string
           minLength: 2
           maxLength: 150
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
           example: 'Avenida Paulista'
+          description: Logradouro do fato. Obrigatório quando estabelecimentoId não for informado.
         numero:
           type: string
           maxLength: 20
+          pattern: '^[A-Za-z0-9 .,''\-ºª]+$'
           example: '1000'
         bairro:
           type: string
           maxLength: 100
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
           example: 'Bela Vista'
+          description: Bairro do fato. Obrigatório quando estabelecimentoId não for informado.
         cidade:
           type: string
           maxLength: 100
+          pattern: '^[A-Za-z0-9À-ÿ .,''\-ºª]+$'
           example: 'São Paulo'
+          description: Cidade do fato. Obrigatório quando estabelecimentoId não for informado.
         estado:
           type: string
           pattern: '^[A-Z]{2}$'
           example: 'SP'
-        referenciaAdicional:
-          type: string
-          maxLength: 150
-          example: 'Em frente à catraca do metrô Trianon'
+          description: UF com 2 letras maiúsculas. Obrigatório quando estabelecimentoId não for informado.
         dataOcorrencia:
           type: string
           format: date
@@ -1729,6 +1808,7 @@ components:
           example: 1
         tipoAmbiente:
           $ref: '#/components/schemas/TipoAmbiente'
+          description: Opcional quando estabelecimentoId for informado (assume ESTABELECIMENTO). Obrigatório para ocorrências fora de estabelecimento.
 
     OcorrenciaDetalheResponse:
       type: object
@@ -1736,8 +1816,6 @@ components:
         - id
         - latitude
         - longitude
-        - logradouro
-        - bairro
         - cidade
         - estado
         - dataOcorrencia
@@ -1745,7 +1823,7 @@ components:
         - tipoViolencia
         - tipoAmbiente
         - totalValidacoes
-        - criadoEm
+        - dataRegistro
       properties:
         id:
           type: string
@@ -1766,12 +1844,15 @@ components:
           example: -46.633308
         logradouro:
           type: string
+          description: Omitido (null) para ocorrências em via pública (sem estabelecimento vinculado) para preservar privacidade (LGPD).
           example: 'Avenida Paulista'
         numero:
           type: string
+          description: Omitido (null) para ocorrências em via pública (sem estabelecimento vinculado) para preservar privacidade (LGPD).
           example: '1000'
         bairro:
           type: string
+          description: Omitido (null) para ocorrências em via pública (sem estabelecimento vinculado) para preservar privacidade (LGPD).
           example: 'Bela Vista'
         cidade:
           type: string
@@ -1779,12 +1860,10 @@ components:
         estado:
           type: string
           example: 'SP'
-        referenciaAdicional:
-          type: string
-          example: 'Em frente ao metrô'
         dataOcorrencia:
           type: string
           format: date
+          description: Data do fato. Para ocorrências em via pública, é atenuada para o dia 1 do mês de ocorrência.
           example: '2026-10-25'
         faixaHorario:
           $ref: '#/components/schemas/FaixaHorario'
@@ -1797,10 +1876,10 @@ components:
         totalValidacoes:
           type: integer
           example: 4
-        criadoEm:
+        dataRegistro:
           type: string
-          format: date-time
-          example: '2026-10-26T10:00:00Z'
+          format: date
+          example: '2026-10-26'
 
     OcorrenciaResumoResponse:
       type: object
@@ -1906,6 +1985,19 @@ components:
       properties:
         tipoValidacao:
           $ref: '#/components/schemas/TipoValidacao'
+
+    AtualizacaoStatusOcorrenciaRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - PUBLICADA
+            - SOB_ANALISE
+            - REMOVIDA
+          example: 'SOB_ANALISE'
 
     # -------------------------------------------------------------------------
     # Schemas de Paginação Padronizada (PageResult<T>)

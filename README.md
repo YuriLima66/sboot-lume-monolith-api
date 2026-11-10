@@ -23,6 +23,9 @@ Operando no modelo **Search-First** (*"Para onde deseja ir?"*), a API atende a d
 * **Regras de Negócio por Módulo:** [docs/regras-de-negocio.md](docs/regras-de-negocio.md) — detalhamento completo das regras (`RN`), fórmulas de reputação/risco, $k$-anonimidade, decisões de escopo e evoluções pós-MVP.
 * **Modelagem de Dados PostgreSQL:** [docs/modelagem-dados.md](docs/modelagem-dados.md) — diagrama entidade-relacionamento (DER), dicionário de tabelas, tipos enumerados, índices `GIST`/compostos e infraestrutura Outbox/ShedLock.
 * **Contrato OpenAPI 3.0.3:** [src/main/resources/api/openapi.yaml](src/main/resources/api/openapi.yaml) — especificação fonte da API (*Contract-First*).
+* **Documento Dispositivos Móveis (Rony):** [docs/documentacao-projeto-dispositivos-moveis.md](docs/documentacao-projeto-dispositivos-moveis.md) — introdução, arquitetura Flutter, justificativa, diagramas e fluxo do usuário.
+* **Collection Postman V1:** [postman/Lume_-_V1.postman_collection.json](postman/Lume_-_V1.postman_collection.json) — requisições HTTP apontando para o deploy no Render.
+* **App Flutter (cliente):** repositório irmão `flutter-lume-app`.
 
 ---
 
